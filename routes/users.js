@@ -78,7 +78,9 @@ users.post("/login", async (req, res, next) => {
                     const token = jwt.sign({
                         user_id: rows[0].user_id,
                         username: rows[0].username
-                    }, "debugkey");
+                    }, "debugkey", {
+                        expiresIn: "1h"
+                    });
 
                     return res.status(200).json({ code: 200, message: token });
                 } else {
