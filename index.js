@@ -8,21 +8,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 //Routes
-const banco = require('./routes/banco');
+const account = require('./routes/account');
 const users = require('./routes/users');
 
 //Middlewares
-//const auth = require('./middleware/auth');
+const auth = require('./middleware/auth');
 const notFound = require('./middleware/notFound');
 const index = require('./middleware/index');
-//const cors = require('./middleware/cors');
+const cors = require('./middleware/cors');
+
+app.use(cors);
 
 app.get('/', index);
 
-app.use("/banco", banco);
-app.use("/users", users);
+app.use("/users", users); // Public
 
-//app.use(auth);
+app.use(auth);
+
+// Private
+app.use("/account", account);
+
 
 app.use(notFound);
 

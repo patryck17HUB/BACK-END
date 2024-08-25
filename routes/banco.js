@@ -21,7 +21,7 @@ banco.post('/', async (req, res, next) => {
 
 banco.get('/', async (req, res, next) => {
     try {
-        const bco = await db.query("SELECT * FROM accounts");
+        const bco = await db.query("SELECT * FROM transactions");
         return res.status(200).json({code: 1, message: bco});
     } catch (err) {
         return res.status(500).json({code: 500, message: "Algo salió mal"});

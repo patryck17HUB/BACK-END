@@ -16,7 +16,9 @@
   "author": "Patryck Yael Poumian Camacho",
   "license": "ISC",
   "dependencies": {
+    "argon2": "^0.40.3",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "mysql": "^2.18.1"
   },
