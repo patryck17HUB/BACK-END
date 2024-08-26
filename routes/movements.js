@@ -8,15 +8,25 @@ movements.get('/', async (req, res, next) => {
 });
 
 movements.get('/all', async (req, res, next) => {
-    const {account_id} = req.body;
+    const { account_id } = req.body;
+    const user_id = req.user.user_id;
 
+    if (account_id){
     try {
+        // Verificar que la cuenta pertenece al usuario
+        const accountQuery = `SELECT * FROM accounts WHERE account_id = '${account_id}' AND user_id = '${user_id}'`;
+        const accountResult = await db.query(accountQuery);
+
+        if (accountResult.length === 0) {
+            return res.status(403).json({ code: 403, message: "Acceso denegado. La cuenta no pertenece al usuario." });
+        }
+
         // Consultar transacciones del usuario, ordenadas por fecha de más reciente a más viejo
-        let transactionsQuery = `SELECT * FROM transactions WHERE account_id = '${account_id}'`;
+        let transactionsQuery = `SELECT *, transaction_date AS date FROM transactions WHERE account_id = '${account_id}'`;
         const transactions = await db.query(transactionsQuery);
 
         // Consultar transferencias del usuario, ordenadas por fecha de más reciente a más viejo
-        let transfersQuery = `SELECT * FROM transfers WHERE from_account_id = '${account_id}' OR to_account_id = '${account_id}'`;
+        let transfersQuery = `SELECT *, transfer_date AS date FROM transfers WHERE from_account_id = '${account_id}' OR to_account_id = '${account_id}'`;
         const transfers = await db.query(transfersQuery);
 
         // Combinar transacciones y transferencias
@@ -33,17 +43,30 @@ movements.get('/all', async (req, res, next) => {
         } else {
             return res.status(200).json({ code: 200, message: "No hay movimientos" });
         }
-    } catch (error) {
+    }
+    catch (error) {
         return res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
+    }
+    return res.status(400).json({ code: 400, message: "Campos incompletos" });
 });
+
 
 movements.get('/transactions', async (req, res, next) => {
     const {account_id} = req.body;
+    const user_id = req.user.user_id;
 
     try {
+        // Verificar que la cuenta pertenece al usuario
+        const accountQuery = `SELECT * FROM accounts WHERE account_id = '${account_id}' AND user_id = '${user_id}'`;
+        const accountResult = await db.query(accountQuery);
+
+        if (accountResult.length === 0) {
+            return res.status(403).json({ code: 403, message: "Acceso denegado. La cuenta no pertenece al usuario." });
+        }
+
         // Consultar transacciones del usuario, ordenadas por fecha de más reciente a más viejo
-        let transactionsQuery = `SELECT * FROM transactions WHERE account_id = '${account_id}'`;
+        let transactionsQuery = `SELECT *, transaction_date AS date FROM transactions WHERE account_id = '${account_id}'`;
         const transactions = await db.query(transactionsQuery);
 
         if (transactions.length > 0) {
@@ -63,10 +86,19 @@ movements.get('/transactions', async (req, res, next) => {
 
 movements.get('/transfers', async (req, res, next) => {
     const {account_id} = req.body;
+    const user_id = req.user.user_id;
 
     try {
+        // Verificar que la cuenta pertenece al usuario
+        const accountQuery = `SELECT * FROM accounts WHERE account_id = '${account_id}' AND user_id = '${user_id}'`;
+        const accountResult = await db.query(accountQuery);
+
+        if (accountResult.length === 0) {
+            return res.status(403).json({ code: 403, message: "Acceso denegado. La cuenta no pertenece al usuario." });
+        }
+
         // Consultar transacciones del usuario, ordenadas por fecha de más reciente a más viejo
-        let transferQuery = `SELECT * FROM transfers WHERE from_account_id = '${account_id}' AND to_account_id = '${account_id}'`;
+        let transferQuery = `SELECT *, transfer_date AS date FROM transfers WHERE from_account_id = '${account_id}' OR to_account_id = '${account_id}'`;
         const transfers = await db.query(transferQuery);
 
         if (transfers.length > 0) {

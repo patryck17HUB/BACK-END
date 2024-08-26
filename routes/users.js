@@ -75,14 +75,31 @@ users.post("/login", async (req, res, next) => {
                 const isMatch = await argon2.verify(storedPasswordHash, password);
 
                 if (isMatch) {
-                    const token = jwt.sign({
-                        user_id: rows[0].user_id,
-                        username: rows[0].username
-                    }, "debugkey", {
-                        expiresIn: "1h"
-                    });
+                    // Obtener el rol del usuario
+                    const roleQuery = `
+                        SELECT roles.role_name 
+                        FROM userroles 
+                        JOIN roles ON userroles.role_id = roles.role_id 
+                        WHERE userroles.user_id = '${rows[0].user_id}'`;
+                    const roleRows = await db.query(roleQuery);
 
-                    return res.status(200).json({ code: 200, message: token });
+                    if (roleRows.length > 0) {
+                        const userRole = roleRows[0].role_name;
+                        console.log(userRole);
+
+                        // Generar el token con el rol en el payload
+                        const token = jwt.sign({
+                            user_id: rows[0].user_id,
+                            username: rows[0].role_name,
+                            role: userRole
+                        }, "debugkey", {
+                            expiresIn: "1h"
+                        });
+
+                        return res.status(200).json({ code: 200, message: token });
+                    } else {
+                        return res.status(401).json({ code: 401, message: "Rol de usuario no encontrado" });
+                    }
                 } else {
                     return res.status(401).json({ code: 401, message: "Usuario y/o contraseña incorrectos" });
                 }

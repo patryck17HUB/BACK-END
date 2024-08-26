@@ -12,9 +12,11 @@ const updateUsers = require('./routes/updateUsers');
 const users = require('./routes/users');
 const account = require('./routes/account');
 const movements = require('./routes/movements');
+const admin = require('./routes/admin');
 
 //Middlewares
 const auth = require('./middleware/auth');
+const authAdmin = require('./middleware/authAdmin');
 const notFound = require('./middleware/notFound');
 const index = require('./middleware/index');
 const cors = require('./middleware/cors');
@@ -32,13 +34,24 @@ app.use("/updateUsers", updateUsers);
 app.use("/accounts", account);
 app.use("/movements", movements);
 
+app.use(authAdmin);
+
+app.use("/admin", admin);
+
 app.use(notFound);
 
 app.listen(process.env.PORT || 3000, () => {
     console.log('Server is running on port 3000');
 });
 /*   -------------------------- To do LIST --------------------------
-- [ ] Logica de Accounts
-- [ ] Logica de Transactions
-- [ ] Logica de Transfers
+- [1] Logica de Accounts
+- [1] Logica de Transactions
+- [1] Logica de Transfers
+- [1] Logica de Movements
+- [1] Logica de Users
+- [1] Logica de UpdateUsers
+- [1] Logica de Auth
+- [1] Logica de Cors
+- [ ] Logica de Admin
+- [1] Propiedad transferencias
 */

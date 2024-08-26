@@ -73,5 +73,4 @@ account.delete('/delete', async (req, res, next) => {
     return res.status(500).json({code: 500, message: "Ocurrió un error"});
 });
 
-
 module.exports = account;
