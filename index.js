@@ -47,11 +47,11 @@ app.listen(process.env.PORT || 3000, () => {
 - [1] Logica de Accounts
 - [1] Logica de Transactions
 - [1] Logica de Transfers
-- [1] Logica de Movements
-- [1] Logica de Users
+- [1] Logica de Users (Publica)
 - [1] Logica de UpdateUsers
 - [1] Logica de Auth
 - [1] Logica de Cors
 - [ ] Logica de Admin
 - [1] Propiedad transferencias
+- [ ] Logout y Borrar Cuenta
 */
