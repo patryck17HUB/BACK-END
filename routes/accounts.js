@@ -1,12 +1,12 @@
 const express = require('express');
-const account = express.Router();
+const accounts = express.Router();
 const db = require('../config/database');
 
-account.get('/', async (req, res, next) => {
+accounts.get('/', async (req, res, next) => {
     return res.status(200).json({code: 1, message: "Pasaste la autenticación"});
 });
 
-account.get('/all', async (req, res, next) => {
+accounts.get('/all', async (req, res, next) => {
     const user_id = req.user.user_id;
 
     try {
@@ -22,7 +22,7 @@ account.get('/all', async (req, res, next) => {
     }
 });
 
-account.get('/select', async (req, res, next) => {
+accounts.get('/select', async (req, res, next) => {
     const user_id = req.user.user_id;
     const {account_id} = req.body;
 
@@ -39,7 +39,7 @@ account.get('/select', async (req, res, next) => {
     }
 });
 
-account.post('/create', async (req, res, next) => {
+accounts.post('/create', async (req, res, next) => {
     const user_id = req.user.user_id;
     const { account_type, balance } = req.body;
     
@@ -61,7 +61,7 @@ account.post('/create', async (req, res, next) => {
     }
 });
 
-account.delete('/delete', async (req, res, next) => {
+accounts.delete('/delete', async (req, res, next) => {
     const user_id = req.user.user_id;
     const {account_id} = req.body;
     let query = `DELETE FROM accounts WHERE user_id = ${user_id} AND account_id = ${account_id}`;
@@ -73,4 +73,4 @@ account.delete('/delete', async (req, res, next) => {
     return res.status(500).json({code: 500, message: "Ocurrió un error"});
 });
 
-module.exports = account;
+module.exports = accounts;

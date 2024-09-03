@@ -66,7 +66,7 @@ movements.get('/transactions', async (req, res, next) => {
         }
 
         // Consultar transacciones del usuario, ordenadas por fecha de más reciente a más viejo
-        let transactionsQuery = `SELECT *, transaction_date AS date FROM transactions WHERE account_id = '${account_id}'`;
+        let transactionsQuery = `SELECT *, transaction_date AS date FROM transactions WHERE account_id = '${account_id}' ORDER BY transaction_date DESC`;
         const transactions = await db.query(transactionsQuery);
 
         if (transactions.length > 0) {
@@ -98,7 +98,7 @@ movements.get('/transfers', async (req, res, next) => {
         }
 
         // Consultar transacciones del usuario, ordenadas por fecha de más reciente a más viejo
-        let transferQuery = `SELECT *, transfer_date AS date FROM transfers WHERE from_account_id = '${account_id}' OR to_account_id = '${account_id}'`;
+        let transferQuery = `SELECT *, transfer_date AS date FROM transfers WHERE from_account_id = '${account_id}' OR to_account_id = '${account_id}' ORDER BY transfer_date DESC`;
         const transfers = await db.query(transferQuery);
 
         if (transfers.length > 0) {
