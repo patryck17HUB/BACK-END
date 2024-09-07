@@ -85,12 +85,10 @@ users.post("/login", async (req, res, next) => {
 
                     if (roleRows.length > 0) {
                         const userRole = roleRows[0].role_name;
-                        console.log(userRole);
 
                         // Generar el token con el rol en el payload
                         const token = jwt.sign({
                             user_id: rows[0].user_id,
-                            username: rows[0].role_name,
                             role: userRole
                         }, "debugkey", {
                             expiresIn: "1h"

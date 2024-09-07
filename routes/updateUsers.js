@@ -7,6 +7,17 @@ updateUsers.get('/', async (req, res, next) => {
     return res.status(200).json({code: 1, message: "Pasaste la autenticación"});
 });
 
+updateUsers.get('/user', async (req, res, next) => {
+    const user_id = req.user.user_id;
+    let query = `SELECT username, email, first_name, last_name FROM users WHERE user_id = ${user_id}`;
+    const rows = await db.query(query);
+
+    if (rows.length > 0) {
+        return res.status(200).json({code: 200, message: rows[0]});
+    }
+    return res.status(404).json({code: 404, message: "Usuario no encontrado"});
+});
+
 updateUsers.post('/confirmpassword', async (req, res, next) => {
     const { password } = req.body;
     const user_id = req.user.user_id;
