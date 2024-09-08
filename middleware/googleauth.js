@@ -4,7 +4,7 @@ global.GOOGLE_CLIENT_SECRET = "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";
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const GoogleStrategy = require('passport-google-oauth2').Strategy;
-const { createUser } = require('./login');
+const { createUser } = require('../controllers/login');
 
 passport.use(new GoogleStrategy({
   clientID: GOOGLE_CLIENT_ID,
