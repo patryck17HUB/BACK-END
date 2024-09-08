@@ -43,6 +43,7 @@ const completeRegistration = async (req, res) => {
   }
 
   try {
+    // Crea un nuevo usuario
     const user = await createUser({
       googleID: googleId,
       username,
@@ -51,12 +52,18 @@ const completeRegistration = async (req, res) => {
       email
     });
 
-    const token = jwt.sign({
-      id: user.user_id,
-      googleId: user.googleID
-    }, 'debugkey', { expiresIn: '1h' });
+    if (user.status === 201) {
+      // Genera un token JWT para el nuevo usuario
+      const token = jwt.sign({
+        id: user.user.user_id,
+        googleId: user.user.googleID
+      }, 'debugkey', { expiresIn: '1h' });
 
-    res.json({ token });
+      return res.json({ token });
+    } else {
+      // Devuelve un error si la creación del usuario falla
+      return res.status(user.status).json({ message: user.error });
+    }
   } catch (err) {
     return res.status(500).json({ message: 'Error al completar el registro del usuario.', error: err.message });
   }

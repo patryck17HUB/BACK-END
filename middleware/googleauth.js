@@ -14,9 +14,8 @@ passport.use(new GoogleStrategy({
 },
 async function(request, accessToken, refreshToken, profile, done) {
   try {
-    // Verificar si el usuario ya existe en la base de datos por su Google ID
-    const { googleID } = { googleID: profile.id };
-
+    const { googleID } = profile;
+    
     // Datos del perfil de Google
     const userData = {
       googleID: profile.id,
@@ -32,28 +31,25 @@ async function(request, accessToken, refreshToken, profile, done) {
       return done(null, { isNewUser: true, user: userData });
     }
 
-    // Llama a findOrCreate para buscar o crear el usuario en la base de datos
-    const user = await createUser(userData);
+    // Llama a createUser para buscar o crear el usuario en la base de datos
+    const result = await createUser(userData);
 
-    if (user) {
+    if (result.status === 201) {
       // Genera el token JWT
       const token = jwt.sign({
-        id: user.userID,
-        googleId: user.googleID
+        id: result.user.user_id,
+        googleId: result.user.googleID
       }, 'debugkey', {
         expiresIn: '1h'
       });
 
-      return done(null, { user, token, isNewUser: false });
+      return done(null, { user: result.user, token, isNewUser: false });
     } else {
-      return done(new Error('No se pudo encontrar o crear el usuario'), null);
+      return done(new Error(result.error), null);
     }
   } catch (error) {
     return done(error);
   }
-}
-));
-
-
+}));
 
 module.exports = passport;

@@ -3,81 +3,81 @@ const argon2 = require('argon2');
 
 async function findUser(googleID) {
   try {
+    let query = `SELECT * FROM users WHERE googleID = ?`;
+    const existingUser = await db.query(query, [googleID]);
 
-    let query = `SELECT * FROM users WHERE googleID = '${googleID}'`;
-    const existingUser = await db.query(query);
     if (existingUser.length === 1) {
-      const roleQuery = `
-          SELECT roles.role_name 
-          FROM userroles 
-          JOIN roles ON userroles.role_id = roles.role_id 
-          JOIN users ON userroles.user_id = users.user_id
-          WHERE users.googleID = '${googleID}'`;
-      const roleRows = await db.query(roleQuery);
+      roleQuery = `
+        SELECT roles.role_name 
+        FROM userroles 
+        JOIN roles ON userroles.role_id = roles.role_id 
+        WHERE userroles.user_id = ?`;
+      const roleRows = await db.query(roleQuery, [existingUser[0].user_id]);
+
       if (roleRows.length > 0) {
         const userRole = roleRows[0].role_name;
-
-        return { user: existingUser[0], isNewUser: false, role: userRole };
+        return { status: 200, user: existingUser[0], isNewUser: false, role: userRole };
       } else {
-        throw new Error('Rol de usuario no encontrado');
+        return { status: 404, error: 'Rol de usuario no encontrado' };
       }
     }
-    return { user: null, isNewUser: true };
+
+    return { status: 404, user: null, isNewUser: true };
   } catch (error) {
-    throw error;
+    return { status: 500, error: 'Error al buscar el usuario', details: error.message };
   }
 }
 
 async function createUser({ googleID, username, first_name, last_name, email }) {
   try {
-    // Verificar si el nombre de usuario o el email ya están en uso
     if (!username || !first_name || !last_name || !email) {
-      throw new Error('Datos insuficientes para crear un nuevo usuario');
+      return { status: 400, error: 'Datos insuficientes para crear un nuevo usuario' };
     }
 
-    const [existingUsername] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
-    if (Array.isArray(existingUsername) && existingUsername.length > 0) {
-      throw new Error('El nombre de usuario ya está en uso.');
+    let usernameQuery = `SELECT * FROM users WHERE username = ?`;
+    const existingUsername = await db.query(usernameQuery, [username]);
+    if (existingUsername.length > 0) {
+      return { status: 400, error: 'El nombre de usuario ya está en uso.' };
     }
 
-    const [existingEmail] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (Array.isArray(existingEmail) && existingEmail.length > 0) {
-      throw new Error('El correo electrónico ya está en uso.');
+    emailQuery = `SELECT * FROM users WHERE email = ?`;
+    const existingEmail = await db.query(emailQuery, [email]);
+    if (existingEmail.length > 0) {
+      return { status: 400, error: 'El correo electrónico ya está en uso.' };
     }
 
-    // Generar una contraseña aleatoria para el usuario
     const randomPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await argon2.hash(randomPassword);
 
-    let query = "INSERT INTO users (username, password, email, first_name, last_name, googleID) ";
-    query += `VALUES ('${username}', '${hashedPassword}', '${email}', '${first_name}', '${last_name}', '${googleID}')`;
-    const result = await db.query(query);
+    let insertUserQuery = `
+      INSERT INTO users (username, password, email, first_name, last_name, googleID) 
+      VALUES (?, ?, ?, ?, ?, ?)`;
+    const result = await db.query(insertUserQuery, [username, hashedPassword, email, first_name, last_name, googleID]);
 
     if (result.affectedRows === 1) {
       const userID = result.insertId;
-      // Obtener el rol de cliente
-      const roleQuery = "SELECT role_id FROM roles WHERE role_name = 'client'";
-      const roleResult = await db.query(roleQuery);
+
+      roleQuery = "SELECT role_id FROM roles WHERE role_name = ?";
+      const roleResult = await db.query(roleQuery, ['client']);
 
       if (roleResult.length === 1) {
         const roleId = roleResult[0].role_id;
 
-        // Insertar en la tabla UserRoles
-        let userRoleQuery = "INSERT INTO userroles (user_id, role_id) ";
-        userRoleQuery += `VALUES (${userID}, ${roleId})`;
-        await db.query(userRoleQuery);
+        let insertRoleQuery = "INSERT INTO userroles (user_id, role_id) VALUES (?, ?)";
+        await db.query(insertRoleQuery, [userID, roleId]);
 
-        const query = `SELECT * FROM users WHERE user_id = '${userID}'`;
-        return await db.query(query);
+        let userQuery = `SELECT * FROM users WHERE user_id = ?`;
+        const user = await db.query(userQuery, [userID]);
+
+        return { status: 201, user: user[0] };
       } else {
-        throw new Error('No se encontró el rol de cliente');
+        return { status: 500, error: 'No se encontró el rol de cliente' };
       }
     } else {
-      throw new Error('Ocurrió un error al registrar el usuario.');
+      return { status: 500, error: 'Ocurrió un error al registrar el usuario.' };
     }
-
   } catch (error) {
-    throw error;
+    return { status: 500, error: 'Error al crear el usuario', details: error.message };
   }
 }
 

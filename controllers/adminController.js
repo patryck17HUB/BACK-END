@@ -2,7 +2,7 @@ const db = require('../config/database');
 
 const getAllUsers = async (req, res) => {
     try {
-        let query = `SELECT * FROM users`;
+        const query = 'SELECT * FROM users';
         const rows = await db.query(query);
 
         if (rows.length > 0) {
@@ -17,7 +17,7 @@ const getAllUsers = async (req, res) => {
 
 const getAllAccounts = async (req, res) => {
     try {
-        let query = `SELECT * FROM accounts`;
+        const query = 'SELECT * FROM accounts';
         const rows = await db.query(query);
 
         if (rows.length > 0) {
@@ -32,10 +32,10 @@ const getAllAccounts = async (req, res) => {
 
 const getAllMovements = async (req, res) => {
     try {
-        let transactionsQuery = `SELECT * FROM transactions`;
+        const transactionsQuery = 'SELECT * FROM transactions';
         const transactions = await db.query(transactionsQuery);
 
-        let transfersQuery = `SELECT * FROM transfers`;
+        const transfersQuery = 'SELECT * FROM transfers';
         const transfers = await db.query(transfersQuery);
 
         const combined = [...transactions, ...transfers];
