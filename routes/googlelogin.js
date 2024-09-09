@@ -1,23 +1,13 @@
 const express = require('express');
 const passport = require('passport');
-require('./googleauth');
+require('../middleware/googleauth');
+const {
+  googleCallback,
+  completeRegistration,
+  isLoggedIn
+} = require('../controllers/googleController');
 
 const googlelogin = express.Router();
-
-function isLoggedIn(req, res, next) {
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
-  if (!token) {
-    return res.sendStatus(401);
-  }
-
-  jwt.verify(token, 'debugkey', (err, user) => {
-    if (err) {
-      return res.sendStatus(403);
-    }
-    req.user = user;
-    next();
-  });
-}
 
 // Inicializa Passport
 googlelogin.use(passport.initialize());
@@ -29,12 +19,12 @@ googlelogin.get('/auth/google',
 
 // Callback de Google
 googlelogin.get('/auth/google/callback',
-  passport.authenticate('google', { session: false }), // No usamos sesiones
-  (req, res) => {
-    // Devuelve el token JWT al cliente
-    res.json({ token: req.user.token });
-  }
+  passport.authenticate('google', { session: false }),
+  googleCallback
 );
+
+// Ruta para completar el registro del usuario con los datos adicionales
+googlelogin.post('/complete-registration', completeRegistration);
 
 // Verificación de autenticación
 googlelogin.get('/isloggedin', isLoggedIn, (req, res) => {

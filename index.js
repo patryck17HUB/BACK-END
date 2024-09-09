@@ -13,6 +13,7 @@ const users = require('./routes/users');
 const accounts = require('./routes/accounts');
 const movements = require('./routes/movements');
 const admin = require('./routes/admin');
+const googlelogin = require('./routes/googlelogin');
 
 //Middlewares
 const auth = require('./middleware/auth');
@@ -20,7 +21,6 @@ const authAdmin = require('./middleware/authAdmin');
 const notFound = require('./middleware/notFound');
 const index = require('./middleware/index');
 const cors = require('./middleware/cors');
-const googlelogin = require('./middleware/googlelogin');
 
 app.use(cors);
 
@@ -33,7 +33,7 @@ app.use("/googlelogin", googlelogin);
 app.use(auth);
 
 // Private
-app.use("/updateUsers", updateUsers);
+app.use("/updateusers", updateUsers);
 app.use("/accounts", accounts);
 app.use("/movements", movements);
 
