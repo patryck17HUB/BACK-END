@@ -46,3 +46,15 @@ app.use(notFound);
 app.listen(process.env.PORT || 3000, () => {
     console.log('Server is running on port 3000');
 });
+
+/*
+Conexion con la base de datos
+Logica de usuarios
+Logica de cuentas
+Logica de movimientos
+Logica de administrador
+Autenticacion de usuarios JWT
+Autenticacion de administrador JWT
+Logica de CORS
+Autenticacion de google 70%
+*/
