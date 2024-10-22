@@ -33,7 +33,7 @@ app.use("/googlelogin", googlelogin);
 app.use(auth);
 
 // Private
-app.use("/updateusers", updateUsers);
+app.use("/updateusers", updateUsers); // INFO DE USUARIO
 app.use("/accounts", accounts);
 app.use("/movements", movements);
 

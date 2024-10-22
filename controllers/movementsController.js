@@ -109,15 +109,15 @@ const postTransfer = async (req, res) => {
             return res.status(400).json({ code: 400, message: "Cuenta de destino inválida" });
         }
 
-        await db.query('START TRANSACTION');
+        // Actualización de balances
         await db.query('UPDATE accounts SET balance = balance - ? WHERE account_id = ?', [amount, from_account_id]);
         await db.query('UPDATE accounts SET balance = balance + ? WHERE account_id = ?', [amount, to_account_id]);
+
+        // Registro de la transferencia
         await db.query('INSERT INTO transfers (from_account_id, to_account_id, amount, description) VALUES (?, ?, ?, ?)', [from_account_id, to_account_id, amount, description]);
-        await db.query('COMMIT');
 
         res.status(200).json({ code: 200, message: "Transferencia realizada correctamente" });
     } catch (error) {
-        await db.query('ROLLBACK');
         res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
 };
@@ -139,9 +139,10 @@ const postTransaction = async (req, res) => {
             return res.status(400).json({ code: 400, message: "Cuenta inválida" });
         }
 
-        await db.query('START TRANSACTION');
+        // Registro de la transacción
         await db.query('INSERT INTO transactions (account_id, transaction_type, amount, description) VALUES (?, ?, ?, ?)', [account_id, transaction_type, amount, description]);
 
+        // Actualización del balance
         const balanceUpdate = transaction_type === 'deposit'
             ? 'UPDATE accounts SET balance = balance + ? WHERE account_id = ?'
             : (account[0].balance >= amount)
@@ -153,14 +154,13 @@ const postTransaction = async (req, res) => {
         }
 
         await db.query(balanceUpdate, [amount, account_id]);
-        await db.query('COMMIT');
 
         res.status(200).json({ code: 200, message: "Transacción realizada correctamente" });
     } catch (error) {
-        await db.query('ROLLBACK');
         res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
 };
+
 
 module.exports = {
     getAllMovements,
