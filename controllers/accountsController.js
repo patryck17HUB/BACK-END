@@ -20,7 +20,7 @@ const getAllAccounts = async (req, res, next) => {
 
 const getAccountById = async (req, res, next) => {
     const user_id = req.user.user_id;
-    const { account_id } = req.body;  // Usa params en lugar de body para ID
+    const { account_id } = req.params;  // Usa params en lugar de body para ID
     try {
         const query = 'SELECT * FROM accounts WHERE user_id = ? AND account_id = ?';
         const rows = await db.query(query, [user_id, account_id]);
