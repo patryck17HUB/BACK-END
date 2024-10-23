@@ -13,9 +13,9 @@ movements.get('/', (req, res) => {
     return res.status(200).json({ code: 1, message: "Pasaste la autenticación" });
 });
 
-movements.get('/all', getAllMovements);
-movements.get('/transactions', getTransactions);
-movements.get('/transfers', getTransfers);
+movements.get('/all/:account_id', getAllMovements);
+movements.get('/transactions/:account_id', getTransactions);
+movements.get('/transfers/:account_id', getTransfers);
 
 // ------------------------------------------ POSTS ------------------------------------------
 movements.post('/transfers', postTransfer);

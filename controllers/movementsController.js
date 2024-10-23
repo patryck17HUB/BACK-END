@@ -8,7 +8,7 @@ const verifyAccountOwnership = async (account_id, user_id) => {
 
 // Obtener todos los movimientos de una cuenta
 const getAllMovements = async (req, res) => {
-    const { account_id } = req.body;
+    const { account_id } = req.params;
     const user_id = req.user.user_id;
 
     if (!account_id) {
@@ -39,7 +39,7 @@ const getAllMovements = async (req, res) => {
 
 // Obtener transacciones de una cuenta
 const getTransactions = async (req, res) => {
-    const { account_id } = req.body;
+    const { account_id } = req.params;
     const user_id = req.user.user_id;
 
     if (!account_id) {
@@ -62,7 +62,7 @@ const getTransactions = async (req, res) => {
 
 // Obtener transferencias de una cuenta
 const getTransfers = async (req, res) => {
-    const { account_id } = req.body;
+    const { account_id } = req.params;
     const user_id = req.user.user_id;
 
     if (!account_id) {
