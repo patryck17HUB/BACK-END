@@ -1,12 +1,12 @@
-const db = require('../config/database');
+const { users, accounts, transactions, transfers } = require('../models/init-models')(require('../config/database'));
 
+// Obtener todos los usuarios
 const getAllUsers = async (req, res) => {
     try {
-        const query = 'SELECT * FROM users';
-        const rows = await db.query(query);
+        const usersList = await users.findAll();
 
-        if (rows.length > 0) {
-            return res.status(200).json({ code: 200, message: rows });
+        if (usersList.length > 0) {
+            return res.status(200).json({ code: 200, message: usersList });
         } else {
             return res.status(404).json({ code: 404, message: "No hay usuarios" });
         }
@@ -15,13 +15,13 @@ const getAllUsers = async (req, res) => {
     }
 };
 
+// Obtener todas las cuentas
 const getAllAccounts = async (req, res) => {
     try {
-        const query = 'SELECT * FROM accounts';
-        const rows = await db.query(query);
+        const accountsList = await accounts.findAll();
 
-        if (rows.length > 0) {
-            return res.status(200).json({ code: 200, message: rows });
+        if (accountsList.length > 0) {
+            return res.status(200).json({ code: 200, message: accountsList });
         } else {
             return res.status(404).json({ code: 404, message: "No hay cuentas" });
         }
@@ -30,15 +30,15 @@ const getAllAccounts = async (req, res) => {
     }
 };
 
+// Obtener todos los movimientos
 const getAllMovements = async (req, res) => {
     try {
-        const transactionsQuery = 'SELECT * FROM transactions';
-        const transactions = await db.query(transactionsQuery);
+        const [transactionsList, transfersList] = await Promise.all([
+            transactions.findAll({ attributes: { include: [['transaction_date', 'date']] } }),
+            transfers.findAll({ attributes: { include: [['transfer_date', 'date']] } })
+        ]);
 
-        const transfersQuery = 'SELECT * FROM transfers';
-        const transfers = await db.query(transfersQuery);
-
-        const combined = [...transactions, ...transfers];
+        const combined = [...transactionsList, ...transfersList];
         const sorted = combined.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (sorted.length > 0) {
@@ -51,11 +51,10 @@ const getAllMovements = async (req, res) => {
     }
 };
 
-// Añadir otras funciones similares...
-
+// Exportar los métodos
 module.exports = {
     getAllUsers,
     getAllAccounts,
     getAllMovements,
-    // Exportar las demás funciones...
+    // Exportar las demás funciones si es necesario...
 };

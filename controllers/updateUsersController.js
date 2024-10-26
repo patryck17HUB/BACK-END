@@ -1,20 +1,23 @@
-const db = require('../config/database');
+const { users } = require('../models/init-models')(require('../config/database'));
 const argon2 = require('argon2');
+const { Op } = require('sequelize'); // Importar Op para operadores de Sequelize
 
 // Obtener detalles del usuario
 const getUserDetails = async (req, res) => {
     const user_id = req.user.user_id;
-    let query = `SELECT username, email, first_name, last_name FROM users WHERE user_id = ?`;
-    
-    try {
-        const rows = await db.query(query, [user_id]);
 
-        if (rows.length > 0) {
-            return res.status(200).json({code: 200, message: rows[0]});
+    try {
+        const user = await users.findOne({
+            where: { user_id },
+            attributes: ['username', 'email', 'first_name', 'last_name'] // Solo los campos que necesitas
+        });
+
+        if (user) {
+            return res.status(200).json({ code: 200, message: user });
         }
-        return res.status(404).json({code: 404, message: "Usuario no encontrado"});
+        return res.status(404).json({ code: 404, message: "Usuario no encontrado" });
     } catch (error) {
-        return res.status(500).json({code: 500, message: "Error en el servidor", error: error.message});
+        return res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
 };
 
@@ -28,11 +31,13 @@ const confirmPassword = async (req, res) => {
     }
 
     try {
-        const query = `SELECT password FROM users WHERE user_id = ?`;
-        const rows = await db.query(query, [user_id]);
+        const user = await users.findOne({
+            where: { user_id },
+            attributes: ['password'] // Solo el campo de la contraseña
+        });
 
-        if (rows.length > 0) {
-            const isMatch = await argon2.verify(rows[0].password, password);
+        if (user) {
+            const isMatch = await argon2.verify(user.password, password);
             return res.status(isMatch ? 200 : 400).json({ code: isMatch ? 200 : 400, message: isMatch ? "Contraseña correcta" : "Contraseña incorrecta" });
         } else {
             return res.status(404).json({ code: 404, message: "Usuario no encontrado" });
@@ -53,10 +58,12 @@ const updatePassword = async (req, res) => {
 
     try {
         const hashedPassword = await argon2.hash(password);
-        const query = `UPDATE users SET password = ? WHERE user_id = ?`;
-        const result = await db.query(query, [hashedPassword, user_id]);
 
-        return res.status(result.affectedRows === 1 ? 200 : 500).json({ code: result.affectedRows === 1 ? 200 : 500, message: result.affectedRows === 1 ? "Contraseña actualizada correctamente" : "Error al actualizar la contraseña" });
+        const [updated] = await users.update({ password: hashedPassword }, {
+            where: { user_id }
+        });
+
+        return res.status(updated ? 200 : 500).json({ code: updated ? 200 : 500, message: updated ? "Contraseña actualizada correctamente" : "Error al actualizar la contraseña" });
     } catch (err) {
         return res.status(500).json({ code: 500, message: "Error al hashear la contraseña", error: err.message });
     }
@@ -72,17 +79,17 @@ const updateEmail = async (req, res) => {
     }
 
     try {
-        const existingUserQuery = `SELECT 1 FROM users WHERE email = ? AND user_id != ? LIMIT 1`;
-        const existingUser = await db.query(existingUserQuery, [email, user_id]);
+        const existingUser = await users.findOne({
+            where: { email, user_id: { [Op.ne]: user_id } } // Op.ne significa "no igual"
+        });
 
-        if (existingUser.length > 0) {
+        if (existingUser) {
             return res.status(400).json({ code: 400, message: "El correo electrónico ya está en uso." });
         }
 
-        const updateQuery = `UPDATE users SET email = ? WHERE user_id = ?`;
-        const result = await db.query(updateQuery, [email, user_id]);
+        const [updated] = await users.update({ email }, { where: { user_id } });
 
-        return res.status(result.affectedRows === 1 ? 200 : 500).json({ code: result.affectedRows === 1 ? 200 : 500, message: result.affectedRows === 1 ? "Correo actualizado correctamente" : "Ocurrió un error" });
+        return res.status(updated ? 200 : 500).json({ code: updated ? 200 : 500, message: updated ? "Correo actualizado correctamente" : "Ocurrió un error" });
     } catch (error) {
         return res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
@@ -98,17 +105,17 @@ const updateUsername = async (req, res) => {
     }
 
     try {
-        const existingUserQuery = `SELECT 1 FROM users WHERE username = ? AND user_id != ? LIMIT 1`;
-        const existingUser = await db.query(existingUserQuery, [username, user_id]);
+        const existingUser = await users.findOne({
+            where: { username, user_id: { [Op.ne]: user_id } }
+        });
 
-        if (existingUser.length > 0) {
+        if (existingUser) {
             return res.status(400).json({ code: 400, message: "El nombre de usuario ya está en uso." });
         }
 
-        const updateQuery = `UPDATE users SET username = ? WHERE user_id = ?`;
-        const result = await db.query(updateQuery, [username, user_id]);
+        const [updated] = await users.update({ username }, { where: { user_id } });
 
-        return res.status(result.affectedRows === 1 ? 200 : 500).json({ code: result.affectedRows === 1 ? 200 : 500, message: result.affectedRows === 1 ? "Nombre de usuario actualizado correctamente" : "Ocurrió un error" });
+        return res.status(updated ? 200 : 500).json({ code: updated ? 200 : 500, message: updated ? "Nombre de usuario actualizado correctamente" : "Ocurrió un error" });
     } catch (error) {
         return res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
@@ -117,11 +124,11 @@ const updateUsername = async (req, res) => {
 // Eliminar usuario
 const deleteUser = async (req, res) => {
     const user_id = req.user.user_id;
-    let query = `DELETE FROM users WHERE user_id = ?`;
 
     try {
-        const result = await db.query(query, [user_id]);
-        return res.status(result.affectedRows === 1 ? 200 : 500).json({ code: result.affectedRows === 1 ? 200 : 500, message: result.affectedRows === 1 ? "Usuario eliminado correctamente" : "Ocurrió un error" });
+        const deleted = await users.destroy({ where: { user_id } });
+
+        return res.status(deleted ? 200 : 500).json({ code: deleted ? 200 : 500, message: deleted ? "Usuario eliminado correctamente" : "Ocurrió un error" });
     } catch (error) {
         return res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }

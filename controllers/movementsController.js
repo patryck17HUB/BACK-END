@@ -1,9 +1,16 @@
-const db = require('../config/database');
+// Importación de modelos
+const { accounts, transactions, transfers } = require('../models/init-models')(require('../config/database'));
+const { Op, Sequelize } = require('sequelize');
+
+// Usamos Sequelize para la transacción
+const sequelize = require('../config/database');
+
 
 const verifyAccountOwnership = async (account_id, user_id) => {
-    const query = 'SELECT * FROM accounts WHERE account_id = ? AND user_id = ?';
-    const result = await db.query(query, [account_id, user_id]);
-    return result.length > 0;
+    const account = await accounts.findOne({
+        where: { account_id, user_id }
+    });
+    return !!account;
 };
 
 // Obtener todos los movimientos de una cuenta
@@ -20,18 +27,22 @@ const getAllMovements = async (req, res) => {
             return res.status(403).json({ code: 403, message: "Acceso denegado. La cuenta no pertenece al usuario." });
         }
 
-        const transactionsQuery = 'SELECT *, transaction_date AS date FROM transactions WHERE account_id = ?';
-        const transfersQuery = 'SELECT *, transfer_date AS date FROM transfers WHERE from_account_id = ? OR to_account_id = ?';
-
-        const [transactions, transfers] = await Promise.all([
-            db.query(transactionsQuery, [account_id]),
-            db.query(transfersQuery, [account_id, account_id])
+        const [transactionsList, transfersList] = await Promise.all([
+            transactions.findAll({ where: { account_id }, attributes: { include: [['transaction_date', 'date']] } }),
+            transfers.findAll({
+                where: {
+                    [Op.or]: [
+                        { from_account_id: account_id },
+                        { to_account_id: account_id }
+                    ]
+                },
+                attributes: { include: [['transfer_date', 'date']] }
+            })
         ]);
 
-        const combined = [...transactions, ...transfers];
-        const sorted = combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const combined = [...transactionsList, ...transfersList].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        res.status(200).json({ code: 200, message: sorted.length > 0 ? sorted : "No hay movimientos" });
+        res.status(200).json({ code: 200, message: combined.length > 0 ? combined : "No hay movimientos" });
     } catch (error) {
         res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
@@ -51,10 +62,13 @@ const getTransactions = async (req, res) => {
             return res.status(403).json({ code: 403, message: "Acceso denegado. La cuenta no pertenece al usuario." });
         }
 
-        const query = 'SELECT *, transaction_date AS date FROM transactions WHERE account_id = ? ORDER BY transaction_date DESC';
-        const transactions = await db.query(query, [account_id]);
+        const transactionsList = await transactions.findAll({
+            where: { account_id },
+            order: [['transaction_date', 'DESC']],
+            attributes: { include: [['transaction_date', 'date']] }
+        });
 
-        res.status(200).json({ code: 200, message: transactions.length > 0 ? transactions : "No hay transacciones" });
+        res.status(200).json({ code: 200, message: transactionsList.length > 0 ? transactionsList : "No hay transacciones" });
     } catch (error) {
         res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
@@ -74,10 +88,18 @@ const getTransfers = async (req, res) => {
             return res.status(403).json({ code: 403, message: "Acceso denegado. La cuenta no pertenece al usuario." });
         }
 
-        const query = 'SELECT *, transfer_date AS date FROM transfers WHERE from_account_id = ? OR to_account_id = ? ORDER BY transfer_date DESC';
-        const transfers = await db.query(query, [account_id, account_id]);
+        const transfersList = await transfers.findAll({
+            where: {
+                [Op.or]: [
+                    { from_account_id: account_id },
+                    { to_account_id: account_id }
+                ]
+            },
+            order: [['transfer_date', 'DESC']],
+            attributes: { include: [['transfer_date', 'date']] }
+        });
 
-        res.status(200).json({ code: 200, message: transfers.length > 0 ? transfers : "No hay transferencias" });
+        res.status(200).json({ code: 200, message: transfersList.length > 0 ? transfersList : "No hay transferencias" });
     } catch (error) {
         res.status(500).json({ code: 500, message: "Error en el servidor", error: error.message });
     }
@@ -92,29 +114,32 @@ const postTransfer = async (req, res) => {
         return res.status(400).json({ code: 400, message: "Campos incompletos" });
     }
 
-    try {
-        const fromAccountQuery = 'SELECT balance FROM accounts WHERE account_id = ? AND user_id = ?';
-        const toAccountQuery = 'SELECT * FROM accounts WHERE account_id = ?';
-        
-        const [fromAccount, toAccount] = await Promise.all([
-            db.query(fromAccountQuery, [from_account_id, user_id]),
-            db.query(toAccountQuery, [to_account_id])
-        ]);
+    if (amount <= 0) {
+        return res.status(400).json({ code: 400, message: "El monto debe ser un número positivo" });
+    }
 
-        if (fromAccount.length === 0 || fromAccount[0].balance < amount) {
+    try {
+        const fromAccount = await accounts.findOne({ where: { account_id: from_account_id, user_id } });
+        const toAccount = await accounts.findOne({ where: { account_id: to_account_id } });
+
+        if (!fromAccount || fromAccount.balance < amount) {
             return res.status(400).json({ code: 400, message: "Fondos insuficientes o cuenta inválida" });
         }
 
-        if (toAccount.length === 0) {
+        if (!toAccount) {
             return res.status(400).json({ code: 400, message: "Cuenta de destino inválida" });
         }
 
-        // Actualización de balances
-        await db.query('UPDATE accounts SET balance = balance - ? WHERE account_id = ?', [amount, from_account_id]);
-        await db.query('UPDATE accounts SET balance = balance + ? WHERE account_id = ?', [amount, to_account_id]);
-
-        // Registro de la transferencia
-        await db.query('INSERT INTO transfers (from_account_id, to_account_id, amount, description) VALUES (?, ?, ?, ?)', [from_account_id, to_account_id, amount, description]);
+        await sequelize.transaction(async (t) => {
+            await fromAccount.decrement('balance', { by: amount, transaction: t });
+            await toAccount.increment('balance', { by: amount, transaction: t });
+            await transfers.create({
+                from_account_id,
+                to_account_id,
+                amount,
+                description
+            }, { transaction: t });
+        });
 
         res.status(200).json({ code: 200, message: "Transferencia realizada correctamente" });
     } catch (error) {
@@ -131,29 +156,33 @@ const postTransaction = async (req, res) => {
         return res.status(400).json({ code: 400, message: "Campos incompletos" });
     }
 
-    try {
-        const accountQuery = 'SELECT * FROM accounts WHERE account_id = ? AND user_id = ?';
-        const account = await db.query(accountQuery, [account_id, user_id]);
+    if (amount <= 0) {
+        return res.status(400).json({ code: 400, message: "El monto debe ser un número positivo" });
+    }
 
-        if (account.length === 0) {
+    try {
+        const account = await accounts.findOne({ where: { account_id, user_id } });
+
+        if (!account) {
             return res.status(400).json({ code: 400, message: "Cuenta inválida" });
         }
 
-        // Registro de la transacción
-        await db.query('INSERT INTO transactions (account_id, transaction_type, amount, description) VALUES (?, ?, ?, ?)', [account_id, transaction_type, amount, description]);
+        await sequelize.transaction(async (t) => {
+            await transactions.create({
+                account_id,
+                transaction_type,
+                amount,
+                description
+            }, { transaction: t });
 
-        // Actualización del balance
-        const balanceUpdate = transaction_type === 'deposit'
-            ? 'UPDATE accounts SET balance = balance + ? WHERE account_id = ?'
-            : (account[0].balance >= amount)
-                ? 'UPDATE accounts SET balance = balance - ? WHERE account_id = ?'
-                : null;
-
-        if (!balanceUpdate) {
-            return res.status(400).json({ code: 400, message: "Fondos insuficientes" });
-        }
-
-        await db.query(balanceUpdate, [amount, account_id]);
+            if (transaction_type === 'deposit') {
+                await account.increment('balance', { by: amount, transaction: t });
+            } else if (transaction_type === 'withdrawal' && account.balance >= amount) {
+                await account.decrement('balance', { by: amount, transaction: t });
+            } else {
+                throw new Error("Fondos insuficientes");
+            }
+        });
 
         res.status(200).json({ code: 200, message: "Transacción realizada correctamente" });
     } catch (error) {

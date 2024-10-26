@@ -9,9 +9,6 @@ const {
 } = require('../controllers/movementsController');
 
 // ------------------------------------------ GETS ------------------------------------------
-movements.get('/', (req, res) => {
-    return res.status(200).json({ code: 1, message: "Pasaste la autenticación" });
-});
 
 movements.get('/all/:account_id', getAllMovements);
 movements.get('/transactions/:account_id', getTransactions);

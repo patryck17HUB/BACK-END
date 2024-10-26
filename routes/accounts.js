@@ -5,6 +5,6 @@ const { getAllAccounts, getAccountById, createAccount, deleteAccount } = require
 accounts.get('/all', getAllAccounts);
 accounts.get('/select/:account_id', getAccountById);
 accounts.post('/create', createAccount);
-accounts.delete('/delete', deleteAccount);
+accounts.delete('/delete/:account_id', deleteAccount);
 
 module.exports = accounts;
