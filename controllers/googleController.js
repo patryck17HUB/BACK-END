@@ -10,7 +10,7 @@ const googleCallback = async (req, res) => {
   try {
     // Llama a findUser para verificar si el usuario ya existe
     const { user, isNewUser, role } = await findUser(req.user.user.googleID);
-    if (isNewUser) {
+    if (isNewUser == true) {
       return res.status(202).json({
         message: 'User needs to complete registration',
         isNewUser: true,

@@ -7,7 +7,6 @@ async function findUser(googleID) {
     const existingUser = await users.findOne({ where: { googleID } });
 
     if (existingUser) {
-      println('NOOOO', existingUser);
       const roleRows = await userroles.findAll({
         where: { user_id: existingUser.user_id },
         include: {
