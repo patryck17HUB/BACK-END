@@ -6,7 +6,7 @@ async function findUser(googleID) {
   try {
     console.log(`Buscando usuario con googleID: ${googleID}`);
     
-    const existingUser = await users.findOne({ where: { googleID } });
+    const existingUser = await users.findOne({ where: { google_id: googleID } });
 
     if (existingUser) {
       console.log(`Usuario encontrado: ${existingUser.user_id}`);
