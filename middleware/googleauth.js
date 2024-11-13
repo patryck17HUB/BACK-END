@@ -9,7 +9,7 @@ const { createUser } = require('../controllers/login');
 passport.use(new GoogleStrategy({
   clientID: GOOGLE_CLIENT_ID,
   clientSecret: GOOGLE_CLIENT_SECRET,
-  callbackURL: "http://bancasppdl.click/googlelogin/auth/google/callback",
+  callbackURL: "https://bancasppdl.click/googlelogin/auth/google/callback",
   passReqToCallback: true
 },
 async function(request, accessToken, refreshToken, profile, done) {
