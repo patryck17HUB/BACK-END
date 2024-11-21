@@ -8,35 +8,34 @@ const googleCallback = async (req, res) => {
   }
 
   try {
-    // Llama a findUser para verificar si el usuario ya existe
     const { user, isNewUser, role } = await findUser(req.user.user.googleID);
 
     if (isNewUser === true) {
-      return res.status(202).json({
-        message: 'User needs to complete registration',
-        isNewUser: true,
-        user: {
-          googleId: req.user.user.googleID,
-          email: req.user.user.email
-        }
-      });
+      // Redirigir a una ruta específica con la información de registro incompleto
+      const registrationUrl = `https://banca-sppdl-bueno.vercel.app/google-callback?isNewUser=true&googleId=${req.user.user.googleID}&email=${req.user.user.email}`;
+      return res.redirect(registrationUrl);
     }
 
-    // Asegúrate de que user.user_id esté definido antes de crear el token
     if (!user || !user.user_id) {
       return res.status(500).json({ message: 'Usuario no encontrado o error en datos de usuario.' });
     }
 
-    // Genera un token JWT para el usuario existente
-    const token = jwt.sign({
-      user_id: user.user_id,
-      googleId: user.googleID,
-      role: role
-    }, 'debugkey', { expiresIn: '1h' });
+    // Genera el token JWT para el usuario
+    const token = jwt.sign(
+      {
+        user_id: user.user_id,
+        googleId: user.googleID,
+        role: role,
+      },
+      'debugkey',
+      { expiresIn: '1h' }
+    );
 
-    res.json({ token });
+    // Redirige al frontend con el token incluido en la URL
+    const callbackUrl = `https://banca-sppdl-bueno.vercel.app/google-callback?token=${token}`;
+    return res.redirect(callbackUrl);
   } catch (err) {
-    console.error('Error in googleCallback:', err);  // Log para capturar el error en el bloque catch
+    console.error('Error in googleCallback:', err);
     return res.status(500).json({ message: 'Error al procesar el usuario.', error: err.message });
   }
 };
